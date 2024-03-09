@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>IFC Model Viewer</title>
+    <script src="https://xeokit.io+latest/xeokit-sdk.min.js"></script>
+</head>
+<body>
+    <div id="myViewer" style="width:600px; height:600px;"></div>
+    <input type="file" id="fileInput" accept=".ifc,.xkt,.json">
+    <script>
+        const viewer = new xeokit.Viewer({
+            canvasId: "myViewer",
+            transparent: true
+        });
+
+        const xktLoader = new xeokit.XKTLoaderPlugin(viewer);
+
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) {
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const contents = e.target.result;
+                xktLoader.load({
+                    id: "myModel",
+                    src: contents,
+                    metaModelSrc: "./myModel.json",
+                    edges: true
+                });
+            };
+            reader.readAsDataURL(file);
+        });
+
+        viewer.scene.on("modelLoaded", function(modelId) {
+            const model = viewer.scene.models[modelId];
+            const metaObjects = model.metaModel.metaObjects;
+            // Display the data from the IFC model
+            for (let metaObjectId in metaObjects) {
+                const metaObject = metaObjects[metaObjectId];
+                console.log(metaObject);
+            }
+        });
+    </script>
+</body>
+</html>
