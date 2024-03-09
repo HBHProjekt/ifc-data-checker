@@ -1,47 +1,53 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
 <head>
-    <title>IFC Model Viewer</title>
-    <script src="https://xeokit.io+latest/xeokit-sdk.min.js"></script>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>IFC File Analyzer</title>
 </head>
 <body>
-    <div id="myViewer" style="width:600px; height:600px;"></div>
-    <input type="file" id="fileInput" accept=".ifc,.xkt,.json">
-    <script>
-        const viewer = new xeokit.Viewer({
-            canvasId: "myViewer",
-            transparent: true
-        });
+    <input type="file" id="fileInput" accept=".ifc">
+    <script type="module">
+        import { IfcAPI } from "https://cdn.jsdelivr.net/npm/web-ifc@0.0.51/web-ifc-api.js";
 
-        const xktLoader = new xeokit.XKTLoaderPlugin(viewer);
+        const ifcAPI = new IfcAPI();
+
+        async function init() {
+            console.log('Initializing IfcAPI...');
+            await ifcAPI.Init();
+            console.log('IfcAPI initialized.');
+        }
+
+        async function loadAndAnalyzeIFC(file) {
+            console.log('Loading file...');
+            const data = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    console.log('File loaded.');
+                    resolve(new Uint8Array(e.target.result));
+                };
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(file);
+            });
+
+            console.log('Analyzing file...');
+            const modelID = ifcAPI.OpenModel(data, {});
+            const items = ifcAPI.GetLineIDsWithType(modelID, ifcAPI.GetIFCType("IFCFACE"));
+            console.log('Items:', items);
+            ifcAPI.CloseModel(modelID);
+        }
 
         document.getElementById('fileInput').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) {
                 return;
             }
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const contents = e.target.result;
-                xktLoader.load({
-                    id: "myModel",
-                    src: contents,
-                    metaModelSrc: "./myModel.json",
-                    edges: true
-                });
-            };
-            reader.readAsDataURL(file);
+            console.log('File selected:', file.name);
+            loadAndAnalyzeIFC(file);
         });
 
-        viewer.scene.on("modelLoaded", function(modelId) {
-            const model = viewer.scene.models[modelId];
-            const metaObjects = model.metaModel.metaObjects;
-            // Display the data from the IFC model
-            for (let metaObjectId in metaObjects) {
-                const metaObject = metaObjects[metaObjectId];
-                console.log(metaObject);
-            }
-        });
+        init();
     </script>
 </body>
 </html>
